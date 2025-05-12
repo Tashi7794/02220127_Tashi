@@ -1,24 +1,82 @@
-#Part 2 Red-Black Tree Implementation
+RED = True
+BLACK = False
 
-class Node:
-    def __init__(self, value):
-        self.value = value
-        self.color = 'red'  # New nodes are always red initially
+class RBNode:
+    def __init__(self, key, color=RED):
+        self.key = key
+        self.color = color
         self.left = None
         self.right = None
         self.parent = None
 
 class RedBlackTree:
     def __init__(self):
-        self.TNULL = Node(0)  # NIL node, used for leaves
-        self.TNULL.color = 'black'  # NIL nodes are always black
-        self.root = self.TNULL
+        self.NIL = RBNode(None, color=BLACK)
+        self.root = self.NIL
 
-    # Left Rotate
-    def left_rotate(self, x):
+    def insert(self, key):
+        new_node = RBNode(key)
+        new_node.left = self.NIL
+        new_node.right = self.NIL
+
+        parent = None
+        current = self.root
+
+        while current != self.NIL:
+            parent = current
+            if new_node.key < current.key:
+                current = current.left
+            else:
+                current = current.right
+
+        new_node.parent = parent
+
+        if parent is None:
+            self.root = new_node
+        elif new_node.key < parent.key:
+            parent.left = new_node
+        else:
+            parent.right = new_node
+
+        new_node.color = RED
+        self._fix_insert(new_node)
+
+    def _fix_insert(self, node):
+        while node != self.root and node.parent.color == RED:
+            if node.parent == node.parent.parent.left:
+                uncle = node.parent.parent.right
+                if uncle.color == RED:
+                    node.parent.color = BLACK
+                    uncle.color = BLACK
+                    node.parent.parent.color = RED
+                    node = node.parent.parent
+                else:
+                    if node == node.parent.right:
+                        node = node.parent
+                        self._left_rotate(node)
+                    node.parent.color = BLACK
+                    node.parent.parent.color = RED
+                    self._right_rotate(node.parent.parent)
+            else:
+                uncle = node.parent.parent.left
+                if uncle.color == RED:
+                    node.parent.color = BLACK
+                    uncle.color = BLACK
+                    node.parent.parent.color = RED
+                    node = node.parent.parent
+                else:
+                    if node == node.parent.left:
+                        node = node.parent
+                        self._right_rotate(node)
+                    node.parent.color = BLACK
+                    node.parent.parent.color = RED
+                    self._left_rotate(node.parent.parent)
+        self.root.color = BLACK
+
+    def _left_rotate(self, x):
         y = x.right
         x.right = y.left
-        if y.left != self.TNULL:
+        if y.left != self.NIL:
             y.left.parent = x
         y.parent = x.parent
         if x.parent is None:
@@ -30,134 +88,77 @@ class RedBlackTree:
         y.left = x
         x.parent = y
 
-    # Right Rotate
-    def right_rotate(self, x):
-        y = x.left
-        x.left = y.right
-        if y.right != self.TNULL:
-            y.right.parent = x
-        y.parent = x.parent
-        if x.parent is None:
-            self.root = y
-        elif x == x.parent.right:
-            x.parent.right = y
+    def _right_rotate(self, y):
+        x = y.left
+        y.left = x.right
+        if x.right != self.NIL:
+            x.right.parent = y
+        x.parent = y.parent
+        if y.parent is None:
+            self.root = x
+        elif y == y.parent.right:
+            y.parent.right = x
         else:
-            x.parent.left = y
-        y.right = x
-        x.parent = y
+            y.parent.left = x
+        x.right = y
+        y.parent = x
 
-    # Fix the Red-Black Tree properties after insertion
-    def fix_insert(self, k):
-        while k.parent.color == 'red':
-            if k.parent == k.parent.parent.left:
-                u = k.parent.parent.right
-                if u.color == 'red':
-                    u.color = 'black'
-                    k.parent.color = 'black'
-                    k.parent.parent.color = 'red'
-                    k = k.parent.parent
-                else:
-                    if k == k.parent.right:
-                        k = k.parent
-                        self.left_rotate(k)
-                    k.parent.color = 'black'
-                    k.parent.parent.color = 'red'
-                    self.right_rotate(k.parent.parent)
-            else:
-                u = k.parent.parent.left
-                if u.color == 'red':
-                    u.color = 'black'
-                    k.parent.color = 'black'
-                    k.parent.parent.color = 'red'
-                    k = k.parent.parent
-                else:
-                    if k == k.parent.left:
-                        k = k.parent
-                        self.right_rotate(k)
-                    k.parent.color = 'black'
-                    k.parent.parent.color = 'red'
-                    self.left_rotate(k.parent.parent)
-            if k == self.root:
-                break
-        self.root.color = 'black'
+    def search(self, key):
+        return self._search(self.root, key)
 
-    # Insert a new node with the given value
-    def insert(self, key):
-        node = Node(key)
-        node.parent = None
-        node.value = key
-        node.left = self.TNULL
-        node.right = self.TNULL
-        node.color = 'red'
+    def _search(self, node, key):
+        if node == self.NIL or node.key == key:
+            return node != self.NIL
+        if key < node.key:
+            return self._search(node.left, key)
+        return self._search(node.right, key)
 
-        y = None
-        x = self.root
-
-        while x != self.TNULL:
-            y = x
-            if node.value < x.value:
-                x = x.left
-            else:
-                x = x.right
-
-        node.parent = y
-        if y is None:
-            self.root = node
-        elif node.value < y.value:
-            y.left = node
-        else:
-            y.right = node
-
-        if node.parent is None:
-            node.color = 'black'
-            return
-
-        if node.parent.parent is None:
-            return
-
-        self.fix_insert(node)
-
-    # Search for a node with a given value
-    def search_tree(self, node, key):
-        if node == self.TNULL or key == node.value:
-            return node
-        if key < node.value:
-            return self.search_tree(node.left, key)
-        return self.search_tree(node.right, key)
-
-    # Get the black height of the tree
     def get_black_height(self):
         return self._get_black_height(self.root)
 
     def _get_black_height(self, node):
-        if node == self.TNULL:
-            return 1
-        left_height = self._get_black_height(node.left)
-        right_height = self._get_black_height(node.right)
-        if left_height != right_height:
-            raise ValueError("Black height is not consistent!")
-        return left_height + (1 if node.color == 'black' else 0)
+        height = 0
+        while node != self.NIL:
+            if node.color == BLACK:
+                height += 1
+            node = node.left
+        return height
 
-    # In-order traversal for printing
-    def inorder_helper(self, node):
-        if node != self.TNULL:
-            self.inorder_helper(node.left)
-            print(node.value, end=" ")
-            self.inorder_helper(node.right)
+    def delete(self, key):
+        print("Delete operation not implemented in this version.")
 
-    # Public method to start inorder traversal
-    def inorder(self):
-        self.inorder_helper(self.root)
-        print()
+# ---------------------------------------
+# ASCII-safe Print Function for Windows
+# ---------------------------------------
+def print_rb_tree(node, indent="", last=True, NIL=None):
+    if node != NIL:
+        print(indent, end="")
+        if last:
+            print("`-- ", end="")
+            indent += "    "
+        else:
+            print("|-- ", end="")
+            indent += "|   "
 
-# Example usage:
-rb_tree = RedBlackTree()
-rb_tree.insert(10)
-rb_tree.insert(20)
-rb_tree.insert(30)
+        color = "[R]" if node.color == RED else "[B]"
+        print(f"{node.key} {color}")
+        print_rb_tree(node.left, indent, False, NIL)
+        print_rb_tree(node.right, indent, True, NIL)
 
-# In-order traversal
-rb_tree.inorder()  # Should print the tree in sorted order
+# -------------------------
+# Example Usage
+# -------------------------
+if __name__ == "__main__":
+    rb_tree = RedBlackTree()
+    rb_tree.insert(10)
+    rb_tree.insert(20)
+    rb_tree.insert(30)
+    rb_tree.insert(15)
+    rb_tree.insert(25)
 
-# Get black height
-print(rb_tree.get_black_height())  # Returns the black height of the tree
+    print("Search 20:", rb_tree.search(20))  # True
+    print("Search 99:", rb_tree.search(99))  # False
+    print("Black Height:", rb_tree.get_black_height())
+
+    print("\nRed-Black Tree Structure:")
+    print_rb_tree(rb_tree.root, NIL=rb_tree.NIL)
